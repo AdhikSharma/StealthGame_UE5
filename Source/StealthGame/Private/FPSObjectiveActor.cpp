@@ -4,6 +4,7 @@
 #include "FPSObjectiveActor.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "StealthGame/StealthGameCharacter.h"
 
 // Sets default values
 AFPSObjectiveActor::AFPSObjectiveActor()
@@ -48,5 +49,14 @@ void AFPSObjectiveActor::NotifyActorBeginOverlap(AActor* otherActor)
 {
 	Super::NotifyActorBeginOverlap(otherActor);
 	PlayEffects();
+
+	AStealthGameCharacter* character = Cast<AStealthGameCharacter>(otherActor);
+
+	if (character)
+	{
+		character->IsCarryingObjective = true;
+		Destroy();
+	}
+
 }
 
