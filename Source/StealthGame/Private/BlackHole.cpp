@@ -38,6 +38,10 @@ void ABlackHole::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	FRotator meshRotation = GetActorRotation();
+	meshRotation.Yaw += 30.0f * DeltaTime;
+	MeshComp->SetWorldRotation(meshRotation);
+
 	TArray<AActor*> OverlappingActors;
 	OuterShpereComp->GetOverlappingActors(OverlappingActors);
 

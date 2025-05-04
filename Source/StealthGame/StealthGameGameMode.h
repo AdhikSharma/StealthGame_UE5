@@ -13,6 +13,15 @@ class AStealthGameGameMode : public AGameModeBase
 
 public:
 	AStealthGameGameMode();
+
+	void MissionComplete(APawn* instigatorPawn);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "GameMode")
+	void OnMissionCompleted(APawn* instigatorPawn);
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Spectating")
+	TSubclassOf<AActor> SpectatingViewpointClass;
 };
 
 
