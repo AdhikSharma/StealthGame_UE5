@@ -14,7 +14,7 @@ AStealthGameGameMode::AStealthGameGameMode()
 
 }
 
-void AStealthGameGameMode::MissionComplete(APawn* instigatorPawn)
+void AStealthGameGameMode::MissionComplete(APawn* instigatorPawn, bool missionSuccess)
 {
 	if (instigatorPawn) 
 	{
@@ -49,6 +49,6 @@ void AStealthGameGameMode::MissionComplete(APawn* instigatorPawn)
 		
 	}
 
-	OnMissionCompleted(instigatorPawn);
+	OnMissionCompleted(instigatorPawn, missionSuccess);
 	
 }

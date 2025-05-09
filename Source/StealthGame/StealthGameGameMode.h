@@ -14,10 +14,10 @@ class AStealthGameGameMode : public AGameModeBase
 public:
 	AStealthGameGameMode();
 
-	void MissionComplete(APawn* instigatorPawn);
+	void MissionComplete(APawn* instigatorPawn,bool missionSuccess);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "GameMode")
-	void OnMissionCompleted(APawn* instigatorPawn);
+	void OnMissionCompleted(APawn* instigatorPawn,bool missionSuccess);
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Spectating")

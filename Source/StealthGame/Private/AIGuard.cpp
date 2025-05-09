@@ -8,6 +8,12 @@
 #include "Perception/AISense_Sight.h"
 #include "Perception/AISense_Hearing.h"
 #include "DrawDebugHelpers.h"
+#include "StealthGame/StealthGameGameMode.h"
+#include "Engine/TargetPoint.h"
+#include "AIController.h"                        
+#include "NavigationSystem.h"                    
+#include "BehaviorTree/BlackboardComponent.h"    
+#include "Kismet/GameplayStatics.h" 
 
 // Sets default values
 AAIGuard::AAIGuard()
@@ -34,6 +40,9 @@ AAIGuard::AAIGuard()
 	AIPerceptionComponent->ConfigureSense(*SightConfig);
 
 	AIPerceptionComponent->ConfigureSense(*SightHearingConfig);
+
+	GuardState = EAIState::Idle;
+	
 }
 
 // Called when the game starts or when spawned
@@ -41,6 +50,9 @@ void AAIGuard::BeginPlay()
 {
 	Super::BeginPlay();
 	AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AAIGuard::OnPawnSeen);
+
+	OriginalRotation = GetActorRotation();
+	GetWorldTimerManager().SetTimer(timerHandleResetRotation, this, &AAIGuard::MoveToPatrolPoint, 3.f, false);
 	
 }
 
@@ -51,13 +63,49 @@ void AAIGuard::OnPawnSeen(AActor* actor, FAIStimulus stimulus)
 	if (stimulus.WasSuccessfullySensed())
 	{
 
-		if (stimulus.Type == SightConfig->GetSenseID())
+		AAIController* aIController = Cast<AAIController>(GetController());
+
+		if (aIController)
+		{
+			aIController->StopMovement();
+		}
+		if (stimulus.Type == SightConfig->GetSenseID())//sight
 		{
 			DrawDebugSphere(GetWorld(), actor->GetActorLocation(), 32.f, 12, FColor::Red, false, 10.f);
+
+			AStealthGameGameMode* gameMode = Cast<AStealthGameGameMode>(GetWorld()->GetAuthGameMode());
+
+			APawn* actorPawn = Cast<APawn>(actor);
+
+			if (gameMode && actorPawn)
+			{
+				gameMode->MissionComplete(actorPawn, false);
+			}
+
+			GetWorldTimerManager().ClearTimer(timerHandleResetRotation);
+			SetGuardState(EAIState::Alerted);
+
 		}
-		else if (stimulus.Type == SightHearingConfig->GetSenseID())
+		else if (stimulus.Type == SightHearingConfig->GetSenseID())//hearing
 		{
+			if (GuardState == EAIState::Alerted)
+			{
+				return;
+			}
+
 			DrawDebugSphere(GetWorld(), stimulus.StimulusLocation, 32.f, 12, FColor::Black, false, 10.f);
+
+			FVector direction = stimulus.StimulusLocation - GetActorLocation();
+			FRotator newLookAt = FRotationMatrix::MakeFromX(direction).Rotator();
+			newLookAt.Pitch = 0.f;
+			newLookAt.Roll = 0.f;
+			SetActorRotation(newLookAt);
+
+			GetWorldTimerManager().ClearTimer(timerHandleResetRotation);
+			GetWorldTimerManager().SetTimer(timerHandleResetRotation, this, &AAIGuard::ResumePatroling, 3.f, false);
+
+			SetGuardState(EAIState::Suspicious);
+			
 		}
 		else
 		{
@@ -66,10 +114,83 @@ void AAIGuard::OnPawnSeen(AActor* actor, FAIStimulus stimulus)
 	}
 }
 
+void AAIGuard::ResetOrientation()
+{
+	if (GuardState == EAIState::Alerted)
+	{
+		return;
+	}
+
+	SetActorRotation(OriginalRotation);
+
+	SetGuardState(EAIState::Idle);
+}
+
+void AAIGuard::SetGuardState(EAIState newState)
+{
+	if (GuardState == newState) 
+	{
+		return;
+	}
+
+	GuardState = newState;
+
+	OnStateChanged(GuardState);
+
+}
+
+void AAIGuard::MoveToPatrolPoint()
+{
+	SetGuardState(EAIState::Patrol);
+	CurrentPatrolPointIndex++;
+
+	if (CurrentPatrolPointIndex < PatrolPoints.Num())
+	{
+		CurrentPatrolPoint = PatrolPoints[CurrentPatrolPointIndex];
+	}
+	else 
+	{
+		CurrentPatrolPointIndex = 0;
+		CurrentPatrolPoint = PatrolPoints[0];
+	}
+
+	AAIController* aIController = Cast<AAIController>(GetController());
+
+	if (aIController)
+	{
+		aIController->MoveToActor(CurrentPatrolPoint);
+	}
+
+}
+
+void AAIGuard::ResumePatroling()
+{
+	SetGuardState(EAIState::Patrol);
+	AAIController* aIController = Cast<AAIController>(GetController());
+
+	if (aIController)
+	{
+		aIController->MoveToActor(CurrentPatrolPoint);
+	}
+}
+
 // Called every frame
 void AAIGuard::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (GuardState == EAIState::Patrol && CurrentPatrolPoint)
+	{
+		//check how many distance is remaining
+
+		const float distanceToTarget = FVector::Dist(GetActorLocation(), CurrentPatrolPoint->GetActorLocation());
+
+		if (distanceToTarget < 100.f) 
+		{
+			SetGuardState(EAIState::Idle);
+			GetWorldTimerManager().SetTimer(timerHandleResetRotation, this, &AAIGuard::MoveToPatrolPoint, 3.f, false);
+		}
+	}
 
 }
 

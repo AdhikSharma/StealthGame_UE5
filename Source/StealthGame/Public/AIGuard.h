@@ -8,6 +8,16 @@
 
 class UAIPerceptionComponent;
 
+UENUM(BlueprintType)
+enum class EAIState : uint8 
+{
+	Idle,
+	Suspicious,
+	Alerted,
+	Patrol
+
+};
+
 UCLASS()
 class STEALTHGAME_API AAIGuard : public ACharacter
 {
@@ -33,8 +43,34 @@ protected:
 	UFUNCTION()
 	void OnPawnSeen(AActor* actor, FAIStimulus stimulus);
 
+	FRotator OriginalRotation;
+	FTimerHandle timerHandleResetRotation;
+
+	UFUNCTION()
+	void ResetOrientation();
+
+	EAIState GuardState;
+
+	void SetGuardState(EAIState newState);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
+	void OnStateChanged(EAIState newState);
+
+	UPROPERTY(EditInstanceOnly, Category = "AI")
+	TArray<class ATargetPoint*> PatrolPoints;
+
+	void MoveToPatrolPoint();
+
+	void ResumePatroling();
+
+	int32 CurrentPatrolPointIndex = -1;
+
+	ATargetPoint* CurrentPatrolPoint;
+
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
 
 };

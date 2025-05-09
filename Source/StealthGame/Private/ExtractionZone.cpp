@@ -43,7 +43,7 @@ void AExtractionZone::HandleOverlap(UPrimitiveComponent* OverlappedComponent, AA
 
 			if (gameMode)
 			{
-				gameMode->MissionComplete(character);
+				gameMode->MissionComplete(character,true);
 				UGameplayStatics::PlaySoundAtLocation(this, ObjectiveMissionSound, GetActorLocation());
 			}
 		}
