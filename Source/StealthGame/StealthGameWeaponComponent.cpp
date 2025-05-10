@@ -28,28 +28,8 @@ void UStealthGameWeaponComponent::Fire()
 		return;
 	}
 
-	// Try and fire a projectile
-	if (ProjectileClass != nullptr)
-	{
-		UWorld* const World = GetWorld();
-		if (World != nullptr)
-		{
-			APlayerController* PlayerController = Cast<APlayerController>(Character->GetController());
-			const FRotator SpawnRotation = PlayerController->PlayerCameraManager->GetCameraRotation();
-			// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-			const FVector SpawnLocation = GetOwner()->GetActorLocation() + SpawnRotation.RotateVector(MuzzleOffset);
-	
-			//Set Spawn Collision Handling Override
-			FActorSpawnParameters ActorSpawnParams;
-			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-			
-			ActorSpawnParams.Instigator = Character;
+	ServerFire();
 
-			// Spawn the projectile at the muzzle
-			World->SpawnActor<AStealthGameProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-		}
-	}
-	
 	// Try and play the sound if specified
 	if (FireSound != nullptr)
 	{
@@ -68,6 +48,35 @@ void UStealthGameWeaponComponent::Fire()
 	}
 }
 
+void UStealthGameWeaponComponent::ServerFire_Implementation()
+{
+	if (ProjectileClass != nullptr)
+	{
+		UWorld* const World = GetWorld();
+		if (World != nullptr)
+		{
+			APlayerController* PlayerController = Cast<APlayerController>(Character->GetController());
+			const FRotator SpawnRotation = PlayerController->PlayerCameraManager->GetCameraRotation();
+			// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
+			const FVector SpawnLocation = GetOwner()->GetActorLocation() + SpawnRotation.RotateVector(MuzzleOffset);
+
+			//Set Spawn Collision Handling Override
+			FActorSpawnParameters ActorSpawnParams;
+			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+			ActorSpawnParams.Instigator = Character;
+
+			// Spawn the projectile at the muzzle
+			World->SpawnActor<AStealthGameProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+		}
+	}
+}
+
+bool UStealthGameWeaponComponent::ServerFire_Validate()
+{
+	return true;
+}
+
 bool UStealthGameWeaponComponent::AttachWeapon(AStealthGameCharacter* TargetCharacter)
 {
 	Character = TargetCharacter;
@@ -78,9 +87,19 @@ bool UStealthGameWeaponComponent::AttachWeapon(AStealthGameCharacter* TargetChar
 		return false;
 	}
 
+	AActor* OwningActor = GetOwner();  // Get the current owner of the component
+	if (OwningActor)
+	{
+		OwningActor->SetOwner(TargetCharacter);  // Set the new owner for the actor (the character)
+	}
+	SetIsReplicated(true);
+
 	// Attach the weapon to the First Person Character
+	//DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	//Rename(nullptr, Character);
 	FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
 	AttachToComponent(Character->GetMesh1P(), AttachmentRules, FName(TEXT("GripPoint")));
+	
 
 	// Set up action bindings
 	if (APlayerController* PlayerController = Cast<APlayerController>(Character->GetController()))
