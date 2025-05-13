@@ -50,13 +50,18 @@ void AFPSObjectiveActor::NotifyActorBeginOverlap(AActor* otherActor)
 	Super::NotifyActorBeginOverlap(otherActor);
 	PlayEffects();
 
-	AStealthGameCharacter* character = Cast<AStealthGameCharacter>(otherActor);
-
-	if (character)
+	if (HasAuthority()) 
 	{
-		character->IsCarryingObjective = true;
-		Destroy();
+		AStealthGameCharacter* character = Cast<AStealthGameCharacter>(otherActor);
+
+		if (character)
+		{
+			character->IsCarryingObjective = true;
+			Destroy();
+		}
 	}
+
+
 
 }
 

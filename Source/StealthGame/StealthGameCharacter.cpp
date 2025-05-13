@@ -74,6 +74,20 @@ void AStealthGameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	}
 }
 
+void AStealthGameCharacter::Tick(float deltaTime)
+{
+	Super::Tick(deltaTime);
+
+	if (!IsLocallyControlled()) 
+	{
+		FRotator newRot = FirstPersonCameraComponent->GetRelativeRotation();
+		newRot.Pitch = RemoteViewPitch* 360.0f/255.0f;
+
+		FirstPersonCameraComponent->SetRelativeRotation(newRot);
+	}
+
+}
+
 
 void AStealthGameCharacter::Move(const FInputActionValue& Value)
 {
