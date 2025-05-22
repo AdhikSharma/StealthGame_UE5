@@ -14,6 +14,7 @@
 #include "NavigationSystem.h"                    
 #include "BehaviorTree/BlackboardComponent.h"    
 #include "Kismet/GameplayStatics.h" 
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 AAIGuard::AAIGuard()
@@ -62,7 +63,6 @@ void AAIGuard::OnPawnSeen(AActor* actor, FAIStimulus stimulus)
 
 	if (stimulus.WasSuccessfullySensed())
 	{
-
 		AAIController* aIController = Cast<AAIController>(GetController());
 
 		if (aIController)
@@ -126,6 +126,11 @@ void AAIGuard::ResetOrientation()
 	SetGuardState(EAIState::Idle);
 }
 
+void AAIGuard::OnRep_GuardState()
+{
+	OnStateChanged(GuardState);
+}
+
 void AAIGuard::SetGuardState(EAIState newState)
 {
 	if (GuardState == newState) 
@@ -134,8 +139,7 @@ void AAIGuard::SetGuardState(EAIState newState)
 	}
 
 	GuardState = newState;
-
-	OnStateChanged(GuardState);
+	OnRep_GuardState();
 
 }
 
@@ -179,6 +183,8 @@ void AAIGuard::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (!HasAuthority()) return;
+
 	if (GuardState == EAIState::Patrol && CurrentPatrolPoint)
 	{
 		//check how many distance is remaining
@@ -192,6 +198,21 @@ void AAIGuard::Tick(float DeltaTime)
 		}
 	}
 
+}
+
+void AAIGuard::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AAIGuard, GuardState);
+}
+
+FString AAIGuard::EnumToString_Reflected(EAIState State)
+{
+	const UEnum* EnumPtr = StaticEnum<EAIState>();
+	if (!EnumPtr) return TEXT("Invalid");
+
+	return EnumPtr->GetNameStringByValue((int8)State);
 }
 
 

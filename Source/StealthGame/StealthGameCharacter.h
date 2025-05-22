@@ -48,8 +48,10 @@ class AStealthGameCharacter : public ACharacter
 public:
 	AStealthGameCharacter();
 
-	UPROPERTY(BlueprintReadOnly, Category = "Gameplay")
+	UPROPERTY(Replicated,BlueprintReadOnly, Category = "Gameplay")
 	bool IsCarryingObjective;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 
 protected:

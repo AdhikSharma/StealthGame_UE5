@@ -11,10 +11,10 @@ class UAIPerceptionComponent;
 UENUM(BlueprintType)
 enum class EAIState : uint8 
 {
-	Idle,
-	Suspicious,
-	Alerted,
-	Patrol
+	Idle UMETA(DisplayName = "Idle"),
+	Suspicious UMETA(DisplayName = "Suspicious"),
+	Alerted UMETA(DisplayName = "Alerted"),
+	Patrol UMETA(DisplayName = "Patrol")
 
 };
 
@@ -49,7 +49,11 @@ protected:
 	UFUNCTION()
 	void ResetOrientation();
 
+	UPROPERTY(ReplicatedUsing = OnRep_GuardState);
 	EAIState GuardState;
+
+	UFUNCTION()
+	void OnRep_GuardState();
 
 	void SetGuardState(EAIState newState);
 
@@ -71,6 +75,10 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	FString EnumToString_Reflected(EAIState State);
 
 
 };
